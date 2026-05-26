@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PropFlow — UI Preview</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .portal-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.12); }
+    .portal-card { transition: all 0.2s ease; }
+    .tab { cursor: pointer; }
+    .tab.active { border-bottom: 2px solid #6366f1; color: #6366f1; }
+  </style>
+</head>
+<body class="bg-gray-50">
+
+<!-- ═══════════════════════════════════════════
+     PORTAL SELECTOR
+═══════════════════════════════════════════ -->
+<div id="selector" class="min-h-screen flex items-center justify-center p-6">
+  <div class="max-w-3xl w-full">
+    <div class="text-center mb-10">
+      <div class="inline-flex items-center gap-3 bg-slate-900 text-white px-6 py-3 rounded-2xl mb-4">
+        <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+        </svg>
+        <span class="text-2xl font-bold">PropFlow</span>
+      </div>
+      <h1 class="text-3xl font-bold text-gray-900">Property Management Platform</h1>
+      <p class="text-gray-500 mt-2">Select a portal to preview its UI</p>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <!-- Manager -->
+      <div class="portal-card bg-white rounded-2xl p-6 border border-gray-200 cursor-pointer" onclick="showPortal('manager')">
+        <div class="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+        </div>
+        <h2 class="text-lg font-bold text-gray-900">Manager Portal</h2>
+        <p class="text-gray-500 text-sm mt-1">Full dashboard with sidebar nav, data-dense views, accounting, maintenance</p>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <span class="bg-indigo-50 text-indigo-700 text-xs px-2 py-1 rounded-full font-medium">Dashboard</span>
+          <span class="bg-indigo-50 text-indigo-700 text-xs px-2 py-1 rounded-full font-medium">Properties</span>
+          <span class="bg-indigo-50 text-indigo-700 text-xs px-2 py-1 rounded-full font-medium">Accounting</span>
+          <span class="bg-indigo-50 text-indigo-700 text-xs px-2 py-1 rounded-full font-medium">Reports</span>
+        </div>
+      </div>
+
+      <!-- Tenant -->
+      <div class="portal-card bg-white rounded-2xl p-6 border border-gray-200 cursor-pointer" onclick="showPortal('tenant')">
+        <div class="w-12 h-12 bg-teal-600 rounded-xl flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+          </svg>
+        </div>
+        <h2 class="text-lg font-bold text-gray-900">Tenant Portal</h2>
+        <p class="text-gray-500 text-sm mt-1">Mobile-first card layout for rent payments, maintenance requests, and documents</p>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <span class="bg-teal-50 text-teal-700 text-xs px-2 py-1 rounded-full font-medium">Pay Rent</span>
+          <span class="bg-teal-50 text-teal-700 text-xs px-2 py-1 rounded-full font-medium">Maintenance</span>
+          <span class="bg-teal-50 text-teal-700 text-xs px-2 py-1 rounded-full font-medium">Documents</span>
+        </div>
+      </div>
+
+      <!-- Owner -->
+      <div class="portal-card bg-white rounded-2xl p-6 border border-gray-200 cursor-pointer" onclick="showPortal('owner')">
+        <div class="w-12 h-12 bg-green-600 rounded-xl flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+          </svg>
+        </div>
+        <h2 class="text-lg font-bold text-gray-900">Owner Portal</h2>
+        <p class="text-gray-500 text-sm mt-1">Clean investor dashboard with charts, monthly statements, and portfolio overview</p>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <span class="bg-green-50 text-green-700 text-xs px-2 py-1 rounded-full font-medium">Portfolio</span>
+          <span class="bg-green-50 text-green-700 text-xs px-2 py-1 rounded-full font-medium">Statements</span>
+          <span class="bg-green-50 text-green-700 text-xs px-2 py-1 rounded-full font-medium">Tax Docs</span>
+        </div>
+      </div>
+
+      <!-- Vendor -->
+      <div class="portal-card bg-white rounded-2xl p-6 border border-gray-200 cursor-pointer" onclick="showPortal('vendor')">
+        <div class="w-12 h-12 bg-amber-500 rounded-xl flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+        </div>
+        <h2 class="text-lg font-bold text-gray-900">Vendor Portal</h2>
+        <p class="text-gray-500 text-sm mt-1">Minimal work order view for contractors — accept jobs, submit invoices</p>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <span class="bg-amber-50 text-amber-700 text-xs px-2 py-1 rounded-full font-medium">Work Orders</span>
+          <span class="bg-amber-50 text-amber-700 text-xs px-2 py-1 rounded-full font-medium">Invoices</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     MANAGER PORTAL PREVIEW
+═══════════════════════════════════════════ -->
+<div id="portal-manager" class="hidden min-h-screen flex">
+  <!-- Sidebar -->
+  <aside class="w-56 bg-slate-900 flex flex-col shrink-0">
+    <div class="px-4 py-4 flex items-center gap-2.5 border-b border-slate-800">
+      <div class="w-7 h-7 bg-indigo-600 rounded-lg flex items-center justify-center">
+        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5"/></svg>
+      </div>
+      <div>
+        <p class="text-white font-semibold text-sm">PropFlow</p>
+        <p class="text-slate-400 text-xs">Manager</p>
+      </div>
+    </div>
+    <nav class="px-3 py-4 flex-1 space-y-0.5">
+      <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm bg-indigo-600 text-white" href="#">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+        Dashboard
+      </a>
+      <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-colors" href="#">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+        Properties
+      </a>
+      <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-colors" href="#">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Leases
+      </a>
+      <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-colors" href="#">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Accounting
+      </a>
+      <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-colors" href="#">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0"/></svg>
+        Maintenance
+      </a>
+      <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-colors" href="#">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        Reports
+      </a>
+    </nav>
+    <div class="px-3 py-4 border-t border-slate-800">
+      <div class="flex items-center gap-2.5 px-3 py-2">
+        <div class="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold">AM</div>
+        <div class="flex-1 min-w-0">
+          <p class="text-white text-xs font-medium truncate">manager@example.com</p>
+          <p class="text-slate-400 text-xs">Manager</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="flex-1 flex flex-col overflow-hidden bg-gray-50">
+    <header class="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
+      <div>
+        <h1 class="text-xl font-bold text-gray-900">Dashboard</h1>
+      </div>
+      <button onclick="showSelector()" class="text-xs text-gray-400 hover:text-gray-600 border border-gray-200 rounded-lg px-3 py-1.5">← Switch Portal</button>
+    </header>
+    <main class="flex-1 overflow-y-auto p-6 space-y-6">
+      <!-- Stat cards -->
+      <div class="grid grid-cols-4 gap-4">
+        <div class="bg-white rounded-xl border border-gray-200 p-4">
+          <div class="flex items-start gap-3">
+            <div class="p-2 bg-indigo-50 rounded-lg"><svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16"/></svg></div>
+            <div>
+              <p class="text-sm text-gray-500">Vacant Units</p>
+              <p class="text-2xl font-bold text-gray-900">2</p>
+              <p class="text-xs text-gray-400">Need tenants</p>
+            </div>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 p-4">
+          <div class="flex items-start gap-3">
+            <div class="p-2 bg-orange-50 rounded-lg"><svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066"/></svg></div>
+            <div>
+              <p class="text-sm text-gray-500">Open Work Orders</p>
+              <p class="text-2xl font-bold text-gray-900">3</p>
+              <p class="text-xs text-gray-400">Avg 4.2d to complete</p>
+            </div>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 p-4">
+          <div class="flex items-start gap-3">
+            <div class="p-2 bg-red-50 rounded-lg"><svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg></div>
+            <div>
+              <p class="text-sm text-gray-500">Delinquent Balance</p>
+              <p class="text-2xl font-bold text-gray-900">$2,400</p>
+              <p class="text-xs text-gray-400">1 tenant past due</p>
+            </div>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-200 p-4">
+          <div class="flex items-start gap-3">
+            <div class="p-2 bg-green-50 rounded-lg"><svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+            <div>
+              <p class="text-sm text-gray-500">Maintenance Cost</p>
+              <p class="text-2xl font-bold text-gray-900">$840</p>
+              <p class="text-xs text-gray-400">Closed orders, all time</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-6">
+        <!-- Vacant Units -->
+        <div class="bg-white rounded-xl border border-gray-200">
+          <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h2 class="font-semibold text-gray-900">Vacant Units</h2>
+            <span class="text-xs text-gray-400">2 total</span>
+          </div>
+          <ul class="divide-y divide-gray-100">
+            <li class="px-5 py-3 flex items-center justify-between">
+              <div>
+                <p class="font-medium text-sm text-gray-900">Unit 1A</p>
+                <p class="text-xs text-gray-400">Maple Street Apartments</p>
+              </div>
+              <div class="text-right">
+                <p class="text-sm font-medium text-gray-700">$1,500/mo</p>
+                <p class="text-xs text-red-500">0d vacant</p>
+              </div>
+            </li>
+            <li class="px-5 py-3 flex items-center justify-between">
+              <div>
+                <p class="font-medium text-sm text-gray-900">Unit 1B</p>
+                <p class="text-xs text-gray-400">Maple Street Apartments</p>
+              </div>
+              <div class="text-right">
+                <p class="text-sm font-medium text-gray-700">$1,200/mo</p>
+                <p class="text-xs text-red-500">30d vacant</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Delinquency -->
+        <div class="bg-white rounded-xl border border-gray-200">
+          <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h2 class="font-semibold text-gray-900">Delinquent Tenants</h2>
+            <span class="text-xs text-gray-400">$2,400 total</span>
+          </div>
+          <ul class="divide-y divide-gray-100">
+            <li class="px-5 py-3 flex items-center justify-between">
+              <div>
+                <p class="font-medium text-sm text-gray-900">Carol Tenant</p>
+                <p class="text-xs text-gray-400">Maple St · Unit 2A</p>
+              </div>
+              <div class="text-right">
+                <p class="text-sm font-bold text-red-600">$2,400.00</p>
+                <p class="text-xs text-gray-400">12d past due</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Work Orders spanning full width -->
+        <div class="bg-white rounded-xl border border-gray-200 col-span-2">
+          <div class="px-5 py-4 border-b border-gray-100">
+            <h2 class="font-semibold text-gray-900">Open Work Orders</h2>
+          </div>
+          <ul class="divide-y divide-gray-100">
+            <li class="px-5 py-3 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Emergency</span>
+                <div>
+                  <p class="text-sm font-medium text-gray-900">Burst pipe in bathroom</p>
+                  <p class="text-xs text-gray-400">Maple Street Apartments</p>
+                </div>
+              </div>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">In Progress</span>
+            </li>
+            <li class="px-5 py-3 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Normal</span>
+                <div>
+                  <p class="text-sm font-medium text-gray-900">HVAC filter replacement</p>
+                  <p class="text-xs text-gray-400">Maple Street Apartments</p>
+                </div>
+              </div>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Submitted</span>
+            </li>
+            <li class="px-5 py-3 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">Low</span>
+                <div>
+                  <p class="text-sm font-medium text-gray-900">Paint touch-up in hallway</p>
+                  <p class="text-xs text-gray-400">Maple Street Apartments</p>
+                </div>
+              </div>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">Approved</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     TENANT PORTAL PREVIEW
+═══════════════════════════════════════════ -->
+<div id="portal-tenant" class="hidden min-h-screen bg-gray-50 flex flex-col max-w-sm mx-auto">
+  <header class="bg-teal-600 text-white px-4 py-3 flex items-center justify-between">
+    <span class="font-bold">PropFlow</span>
+    <button onclick="showSelector()" class="text-xs bg-teal-700 px-3 py-1.5 rounded-lg">← Portals</button>
+  </header>
+  <main class="flex-1 p-4 space-y-4 pb-20">
+    <div class="pt-1">
+      <h1 class="text-xl font-bold text-gray-900">Hi, Carol 👋</h1>
+      <p class="text-gray-500 text-sm">Here's your account overview</p>
+    </div>
+    <!-- Balance card -->
+    <div class="bg-gradient-to-br from-teal-600 to-teal-700 rounded-2xl p-5 text-white">
+      <p class="text-teal-100 text-sm font-medium">Current Balance</p>
+      <p class="text-4xl font-bold mt-1">$2,400.00</p>
+      <p class="text-teal-200 text-xs mt-1">Amount due</p>
+      <div class="mt-4 flex gap-3">
+        <button class="bg-white text-teal-700 font-semibold text-sm px-4 py-2 rounded-lg">Pay Now</button>
+        <button class="border border-teal-400 text-white text-sm px-4 py-2 rounded-lg">Set up Autopay</button>
+      </div>
+    </div>
+    <!-- Charges -->
+    <div class="bg-white rounded-xl border border-gray-200">
+      <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+        <h2 class="font-semibold text-gray-900">Charges</h2>
+      </div>
+      <ul class="divide-y divide-gray-100">
+        <li class="px-5 py-3 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            <div>
+              <p class="text-sm font-medium text-gray-800">RENT</p>
+              <p class="text-xs text-gray-400">Due Jun 1, 2026</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <p class="text-sm font-medium">$2,000.00</p>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Outstanding</span>
+          </div>
+        </li>
+        <li class="px-5 py-3 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856"/></svg>
+            <div>
+              <p class="text-sm font-medium text-gray-800">LATE FEE</p>
+              <p class="text-xs text-gray-400">Due Jun 6, 2026</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <p class="text-sm font-medium">$100.00</p>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Outstanding</span>
+          </div>
+        </li>
+        <li class="px-5 py-3 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            <div>
+              <p class="text-sm font-medium text-gray-800">RENT</p>
+              <p class="text-xs text-gray-400">Due May 1, 2026</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <p class="text-sm font-medium">$2,000.00</p>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Paid</span>
+          </div>
+        </li>
+      </ul>
+    </div>
+    <!-- Maintenance -->
+    <div class="bg-white rounded-xl border border-gray-200 p-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center">
+          <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0"/></svg>
+        </div>
+        <div class="flex-1">
+          <p class="font-medium text-gray-900">Maintenance Request</p>
+          <p class="text-xs text-gray-400">Report an issue in your unit</p>
+        </div>
+        <button class="text-xs border border-gray-200 text-gray-600 px-3 py-1.5 rounded-lg font-medium">Submit</button>
+      </div>
+    </div>
+  </main>
+  <!-- Bottom nav -->
+  <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex max-w-sm mx-auto">
+    <a class="flex-1 flex flex-col items-center justify-center py-3 text-xs gap-1 text-teal-600" href="#">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      Home
+    </a>
+    <a class="flex-1 flex flex-col items-center justify-center py-3 text-xs gap-1 text-gray-400" href="#">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+      Payments
+    </a>
+    <a class="flex-1 flex flex-col items-center justify-center py-3 text-xs gap-1 text-gray-400" href="#">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0"/></svg>
+      Maintenance
+    </a>
+    <a class="flex-1 flex flex-col items-center justify-center py-3 text-xs gap-1 text-gray-400" href="#">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      Documents
+    </a>
+  </nav>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     OWNER PORTAL PREVIEW
+═══════════════════════════════════════════ -->
+<div id="portal-owner" class="hidden min-h-screen bg-gray-50">
+  <header class="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-6">
+      <span class="font-bold text-gray-900">PropFlow</span>
+      <nav class="flex gap-1">
+        <a class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-green-50 text-green-700 font-medium" href="#">Overview</a>
+        <a class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-50" href="#">Properties</a>
+        <a class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-50" href="#">Statements</a>
+      </nav>
+    </div>
+    <button onclick="showSelector()" class="text-sm text-gray-400 hover:text-gray-700 border border-gray-200 px-3 py-1.5 rounded-lg">← Portals</button>
+  </header>
+  <main class="max-w-5xl mx-auto p-6 space-y-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Portfolio Overview</h1>
+      <p class="text-gray-500 text-sm">May 2026</p>
+    </div>
+    <div class="grid grid-cols-4 gap-4">
+      <div class="bg-white rounded-xl border border-gray-200 p-4"><div class="flex items-start gap-3"><div class="p-2 bg-green-50 rounded-lg"><svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16"/></svg></div><div><p class="text-sm text-gray-500">Properties</p><p class="text-2xl font-bold text-gray-900">1</p></div></div></div>
+      <div class="bg-white rounded-xl border border-gray-200 p-4"><div class="flex items-start gap-3"><div class="p-2 bg-green-50 rounded-lg"><svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3"/></svg></div><div><p class="text-sm text-gray-500">Total Units</p><p class="text-2xl font-bold text-gray-900">3</p></div></div></div>
+      <div class="bg-white rounded-xl border border-gray-200 p-4"><div class="flex items-start gap-3"><div class="p-2 bg-green-50 rounded-lg"><svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><div><p class="text-sm text-gray-500">Monthly Income</p><p class="text-2xl font-bold text-gray-900">$2,000</p></div></div></div>
+      <div class="bg-white rounded-xl border border-gray-200 p-4"><div class="flex items-start gap-3"><div class="p-2 bg-green-50 rounded-lg"><svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg></div><div><p class="text-sm text-gray-500">Net to Owner</p><p class="text-2xl font-bold text-gray-900">$1,760</p></div></div></div>
+    </div>
+    <!-- Properties list -->
+    <div class="bg-white rounded-xl border border-gray-200">
+      <div class="px-6 py-4 border-b border-gray-100"><h2 class="font-semibold text-gray-900">My Properties</h2></div>
+      <ul class="divide-y divide-gray-100">
+        <li class="px-6 py-4 flex items-center justify-between">
+          <div>
+            <p class="font-medium text-gray-900">Maple Street Apartments</p>
+            <p class="text-xs text-gray-400">RESIDENTIAL · 3 units · 123 Maple Street, Springfield, IL</p>
+          </div>
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Residential</span>
+        </li>
+      </ul>
+    </div>
+  </main>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     VENDOR PORTAL PREVIEW
+═══════════════════════════════════════════ -->
+<div id="portal-vendor" class="hidden min-h-screen bg-amber-50">
+  <header class="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center">
+        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      </div>
+      <span class="font-bold text-gray-900">PropFlow · Vendor</span>
+    </div>
+    <button onclick="showSelector()" class="text-sm text-gray-400 hover:text-gray-700 border border-gray-200 px-3 py-1.5 rounded-lg">← Portals</button>
+  </header>
+  <main class="max-w-3xl mx-auto p-6 space-y-5">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Work Orders</h1>
+      <p class="text-gray-500 text-sm">2 assigned to you</p>
+    </div>
+    <div class="space-y-4">
+      <div class="bg-white rounded-xl border border-gray-200 p-5">
+        <div class="flex items-start justify-between">
+          <div class="flex-1">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Emergency</span>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">In Progress</span>
+            </div>
+            <h3 class="font-semibold text-gray-900">Burst pipe in bathroom</h3>
+            <p class="text-sm text-gray-500 mt-1">Water leaking from pipe under sink in unit 2A bathroom. Needs immediate attention.</p>
+            <div class="mt-3 text-xs text-gray-400 space-y-0.5">
+              <p>Maple Street Apartments · Unit 2A</p>
+              <p>123 Maple Street, Springfield, IL</p>
+              <p>Submitted May 20, 2026</p>
+              <p>Scheduled May 21, 2026</p>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 pt-4 border-t border-gray-100 flex gap-2">
+          <button class="bg-amber-500 text-white text-sm px-4 py-2 rounded-lg font-medium hover:bg-amber-600">Mark Complete</button>
+          <button class="border border-gray-200 text-gray-600 text-sm px-4 py-2 rounded-lg font-medium hover:bg-gray-50">Submit Invoice</button>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl border border-gray-200 p-5">
+        <div class="flex items-start justify-between">
+          <div class="flex-1">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Normal</span>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Assigned</span>
+            </div>
+            <h3 class="font-semibold text-gray-900">HVAC filter replacement</h3>
+            <p class="text-sm text-gray-500 mt-1">Replace air filter in unit 1A. Tenant reports reduced airflow.</p>
+            <div class="mt-3 text-xs text-gray-400 space-y-0.5">
+              <p>Maple Street Apartments · Unit 1A</p>
+              <p>Submitted May 22, 2026</p>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 pt-4 border-t border-gray-100 flex gap-2">
+          <button class="bg-amber-500 text-white text-sm px-4 py-2 rounded-lg font-medium hover:bg-amber-600">Start Job</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  function showSelector() {
+    document.getElementById('selector').classList.remove('hidden');
+    ['manager','tenant','owner','vendor'].forEach(p => document.getElementById('portal-'+p).classList.add('hidden'));
+  }
+  function showPortal(name) {
+    document.getElementById('selector').classList.add('hidden');
+    ['manager','tenant','owner','vendor'].forEach(p => document.getElementById('portal-'+p).classList.add('hidden'));
+    document.getElementById('portal-'+name).classList.remove('hidden');
+  }
+</script>
+</body>
+</html>

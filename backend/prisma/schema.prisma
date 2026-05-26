@@ -1,0 +1,744 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum UserRole {
+  MANAGER
+  OWNER
+  TENANT
+  VENDOR
+}
+
+enum PropertyType {
+  RESIDENTIAL
+  COMMERCIAL
+  HOA
+}
+
+enum UnitStatus {
+  OCCUPIED
+  VACANT
+  UNDER_MAINTENANCE
+  NOTICE_GIVEN
+}
+
+enum LeaseStatus {
+  PENDING
+  ACTIVE
+  MONTH_TO_MONTH
+  EXPIRED
+  TERMINATED
+}
+
+enum RentChargeType {
+  RENT
+  LATE_FEE
+  PET_FEE
+  UTILITY
+  PARKING
+  OTHER
+}
+
+enum ChargeStatus {
+  OUTSTANDING
+  PARTIAL
+  PAID
+  WAIVED
+}
+
+enum PaymentMethod {
+  ACH
+  CREDIT_CARD
+  CHECK
+  CASH
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum WorkOrderStatus {
+  SUBMITTED
+  APPROVED
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  INVOICED
+  CLOSED
+  DENIED
+}
+
+enum WorkOrderPriority {
+  EMERGENCY
+  HIGH
+  NORMAL
+  LOW
+}
+
+enum InvoiceStatus {
+  SUBMITTED
+  APPROVED
+  PAID
+  REJECTED
+}
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  INCOME
+  EXPENSE
+}
+
+enum JournalEntryType {
+  RENT_CHARGE
+  PAYMENT_RECEIVED
+  LATE_FEE
+  SECURITY_DEPOSIT
+  SECURITY_DEPOSIT_RETURN
+  MAINTENANCE_EXPENSE
+  MANAGEMENT_FEE
+  OWNER_DISBURSEMENT
+  REVERSAL
+  GENERAL
+}
+
+enum ApplicationStatus {
+  RECEIVED
+  SCREENING
+  APPROVED
+  DENIED
+}
+
+enum MessageChannel {
+  IN_APP
+  EMAIL
+  SMS
+}
+
+// ─────────────────────────────────────────────
+// CORE ENTITIES
+// ─────────────────────────────────────────────
+
+model ManagementCompany {
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  name    String
+  email   String
+  phone   String?
+  address String?
+  city    String?
+  state   String?
+  zip     String?
+  logoUrl String? @map("logo_url")
+
+  users          User[]
+  owners         Owner[]
+  properties     Property[]
+  accounts       Account[]
+  workOrders     WorkOrder[]
+  vendors        Vendor[]
+  journalEntries JournalEntry[]
+  messages       Message[]
+  auditLogs      AuditLog[]
+
+  @@map("management_companies")
+}
+
+model User {
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         UserRole
+  firstName    String   @map("first_name")
+  lastName     String   @map("last_name")
+  phone        String?
+  avatarUrl    String?  @map("avatar_url")
+
+  managementCompanyId String? @map("management_company_id")
+  managementCompany   ManagementCompany? @relation(fields: [managementCompanyId], references: [id])
+
+  ownerProfile  Owner?
+  tenantProfile Tenant?
+  vendorProfile Vendor?
+
+  refreshTokens RefreshToken[]
+  auditLogs     AuditLog[]
+
+  @@index([email])
+  @@index([managementCompanyId])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @map("created_at")
+
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// ─────────────────────────────────────────────
+// OWNERSHIP & PROPERTIES
+// ─────────────────────────────────────────────
+
+model Owner {
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  managementCompanyId String @map("management_company_id")
+  managementCompany   ManagementCompany @relation(fields: [managementCompanyId], references: [id])
+
+  userId String @unique @map("user_id")
+  user   User   @relation(fields: [userId], references: [id])
+
+  // Encrypted PII for 1099 and disbursements
+  taxId             String? @map("tax_id")
+  bankAccountNumber String? @map("bank_account_number")
+  bankRoutingNumber String? @map("bank_routing_number")
+
+  properties Property[]
+
+  @@index([managementCompanyId])
+  @@map("owners")
+}
+
+model Property {
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  managementCompanyId String       @map("management_company_id")
+  managementCompany   ManagementCompany @relation(fields: [managementCompanyId], references: [id])
+
+  ownerId String? @map("owner_id")
+  owner   Owner?  @relation(fields: [ownerId], references: [id])
+
+  name        String
+  type        PropertyType
+  address     String
+  city        String
+  state       String
+  zip         String
+  country     String   @default("US")
+  description String?
+  photoUrl    String?  @map("photo_url")
+
+  units          Unit[]
+  workOrders     WorkOrder[]
+  journalEntries JournalEntry[]
+
+  @@index([managementCompanyId])
+  @@index([ownerId])
+  @@map("properties")
+}
+
+model Unit {
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  propertyId String   @map("property_id")
+  property   Property @relation(fields: [propertyId], references: [id])
+
+  unitNumber  String     @map("unit_number")
+  beds        Int?
+  baths       Decimal?   @db.Decimal(3, 1)
+  sqft        Int?
+  rentAmount  Int        @map("rent_amount") // cents
+  status      UnitStatus @default(VACANT)
+  description String?
+
+  vacantSince DateTime? @map("vacant_since")
+
+  leases     Lease[]
+  workOrders WorkOrder[]
+
+  @@unique([propertyId, unitNumber])
+  @@index([propertyId])
+  @@map("units")
+}
+
+// ─────────────────────────────────────────────
+// LEASING
+// ─────────────────────────────────────────────
+
+model Lease {
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  unitId String @map("unit_id")
+  unit   Unit   @relation(fields: [unitId], references: [id])
+
+  status      LeaseStatus @default(PENDING)
+  startDate   DateTime    @map("start_date")
+  endDate     DateTime?   @map("end_date")
+  rentAmount  Int         @map("rent_amount") // cents
+  depositAmount Int       @map("deposit_amount") // cents
+
+  // Rent cycle config
+  rentDueDay      Int    @default(1) @map("rent_due_day")
+  gracePeriodDays Int    @default(5) @map("grace_period_days")
+  lateFeeType     String @default("FLAT") @map("late_fee_type") // FLAT | PERCENT
+  lateFeeAmount   Int    @default(0) @map("late_fee_amount") // cents or basis points (100 = 1%)
+
+  // Pet policy
+  petsAllowed Boolean @default(false) @map("pets_allowed")
+  petDeposit  Int?    @map("pet_deposit") // cents
+
+  // Security deposit tracking
+  depositPaid     Boolean   @default(false) @map("deposit_paid")
+  depositPaidDate DateTime? @map("deposit_paid_date")
+  depositReturned Boolean   @default(false) @map("deposit_returned")
+  depositReturnedDate DateTime? @map("deposit_returned_date")
+
+  tenants     Tenant[]
+  rentCharges RentCharge[]
+  payments    Payment[]
+  documents   Document[]
+
+  @@index([unitId])
+  @@map("leases")
+}
+
+model Tenant {
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  managementCompanyId String @map("management_company_id")
+
+  userId String? @unique @map("user_id")
+  user   User?   @relation(fields: [userId], references: [id])
+
+  leaseId String? @map("lease_id")
+  lease   Lease?  @relation(fields: [leaseId], references: [id])
+
+  firstName String @map("first_name")
+  lastName  String @map("last_name")
+  email     String
+  phone     String?
+
+  // Encrypted PII
+  ssn         String? // encrypted at application layer
+  dateOfBirth String? @map("date_of_birth") // encrypted
+
+  // Autopay
+  autopayEnabled   Boolean @default(false) @map("autopay_enabled")
+  stripeCustomerId String? @map("stripe_customer_id")
+
+  @@index([managementCompanyId])
+  @@index([leaseId])
+  @@map("tenants")
+}
+
+model RentalApplication {
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  managementCompanyId String @map("management_company_id")
+  unitId              String @map("unit_id")
+
+  status ApplicationStatus @default(RECEIVED)
+
+  firstName String @map("first_name")
+  lastName  String @map("last_name")
+  email     String
+  phone     String?
+
+  employer      String?
+  monthlyIncome Int?    @map("monthly_income") // cents
+
+  // Encrypted PII
+  ssn         String?
+  dateOfBirth String? @map("date_of_birth")
+
+  message           String?
+  screeningReportId String? @map("screening_report_id")
+  notes             String?
+
+  @@index([managementCompanyId])
+  @@index([unitId])
+  @@map("rental_applications")
+}
+
+// ─────────────────────────────────────────────
+// CHARGES & PAYMENTS
+// ─────────────────────────────────────────────
+
+model RentCharge {
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  leaseId String @map("lease_id")
+  lease   Lease  @relation(fields: [leaseId], references: [id])
+
+  type        RentChargeType
+  amount      Int          // cents
+  dueDate     DateTime     @map("due_date")
+  status      ChargeStatus @default(OUTSTANDING)
+  balance     Int          // remaining balance in cents
+  description String?
+
+  applications PaymentApplication[]
+
+  @@index([leaseId])
+  @@index([dueDate])
+  @@map("rent_charges")
+}
+
+model Payment {
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  leaseId String @map("lease_id")
+  lease   Lease  @relation(fields: [leaseId], references: [id])
+
+  amount          Int           // cents
+  method          PaymentMethod
+  status          PaymentStatus @default(PENDING)
+  referenceNumber String?       @map("reference_number")
+  memo            String?
+
+  stripePaymentIntentId String? @unique @map("stripe_payment_intent_id")
+
+  paidDate DateTime? @map("paid_date")
+
+  applications PaymentApplication[]
+  journalEntry JournalEntry?
+
+  @@index([leaseId])
+  @@map("payments")
+}
+
+model PaymentApplication {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @map("created_at")
+
+  paymentId String  @map("payment_id")
+  payment   Payment @relation(fields: [paymentId], references: [id])
+
+  rentChargeId String     @map("rent_charge_id")
+  rentCharge   RentCharge @relation(fields: [rentChargeId], references: [id])
+
+  amount Int // cents applied to this charge
+
+  @@index([paymentId])
+  @@index([rentChargeId])
+  @@map("payment_applications")
+}
+
+// ─────────────────────────────────────────────
+// MAINTENANCE
+// ─────────────────────────────────────────────
+
+model WorkOrder {
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  managementCompanyId String @map("management_company_id")
+  managementCompany   ManagementCompany @relation(fields: [managementCompanyId], references: [id])
+
+  propertyId String   @map("property_id")
+  property   Property @relation(fields: [propertyId], references: [id])
+
+  unitId String? @map("unit_id")
+  unit   Unit?   @relation(fields: [unitId], references: [id])
+
+  vendorId String? @map("vendor_id")
+  vendor   Vendor? @relation(fields: [vendorId], references: [id])
+
+  submittedByTenantId String? @map("submitted_by_tenant_id")
+
+  title         String
+  description   String
+  status        WorkOrderStatus   @default(SUBMITTED)
+  priority      WorkOrderPriority @default(NORMAL)
+  internalNotes String?           @map("internal_notes")
+
+  scheduledDate DateTime? @map("scheduled_date")
+  completedDate DateTime? @map("completed_date")
+
+  invoices  Invoice[]
+  documents Document[]
+  messages  Message[]
+
+  @@index([managementCompanyId])
+  @@index([propertyId])
+  @@index([vendorId])
+  @@map("work_orders")
+}
+
+model Vendor {
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  managementCompanyId String @map("management_company_id")
+  managementCompany   ManagementCompany @relation(fields: [managementCompanyId], references: [id])
+
+  userId String? @unique @map("user_id")
+  user   User?   @relation(fields: [userId], references: [id])
+
+  companyName String  @map("company_name")
+  contactName String? @map("contact_name")
+  email       String
+  phone       String?
+  specialty   String?
+  licenseNumber String? @map("license_number")
+  insuranceExpiry DateTime? @map("insurance_expiry")
+
+  // Encrypted for 1099
+  taxId String? @map("tax_id")
+
+  workOrders WorkOrder[]
+  invoices   Invoice[]
+
+  @@index([managementCompanyId])
+  @@map("vendors")
+}
+
+model Invoice {
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  workOrderId String    @map("work_order_id")
+  workOrder   WorkOrder @relation(fields: [workOrderId], references: [id])
+
+  vendorId String @map("vendor_id")
+  vendor   Vendor @relation(fields: [vendorId], references: [id])
+
+  amount      Int           // cents
+  status      InvoiceStatus @default(SUBMITTED)
+  description String?
+  invoiceDate DateTime      @map("invoice_date")
+  dueDate     DateTime?     @map("due_date")
+
+  lineItems    InvoiceLineItem[]
+  journalEntry JournalEntry?
+
+  @@index([workOrderId])
+  @@index([vendorId])
+  @@map("invoices")
+}
+
+model InvoiceLineItem {
+  id String @id @default(uuid())
+
+  invoiceId String  @map("invoice_id")
+  invoice   Invoice @relation(fields: [invoiceId], references: [id])
+
+  description String
+  quantity    Decimal @db.Decimal(10, 2)
+  unitPrice   Int     @map("unit_price") // cents
+  amount      Int     // cents
+
+  @@map("invoice_line_items")
+}
+
+// ─────────────────────────────────────────────
+// DOUBLE-ENTRY ACCOUNTING
+// ─────────────────────────────────────────────
+
+model Account {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  managementCompanyId String @map("management_company_id")
+  managementCompany   ManagementCompany @relation(fields: [managementCompanyId], references: [id])
+
+  code            String
+  name            String
+  type            AccountType
+  isTrustAccount  Boolean @default(false) @map("is_trust_account")
+  isSystemAccount Boolean @default(false) @map("is_system_account")
+  description     String?
+
+  journalLines JournalLine[]
+
+  @@unique([managementCompanyId, code])
+  @@index([managementCompanyId])
+  @@map("accounts")
+}
+
+model JournalEntry {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @map("created_at")
+
+  managementCompanyId String @map("management_company_id")
+  managementCompany   ManagementCompany @relation(fields: [managementCompanyId], references: [id])
+
+  propertyId String?   @map("property_id")
+  property   Property? @relation(fields: [propertyId], references: [id])
+
+  paymentId String?  @unique @map("payment_id")
+  payment   Payment? @relation(fields: [paymentId], references: [id])
+
+  invoiceId String?  @unique @map("invoice_id")
+  invoice   Invoice? @relation(fields: [invoiceId], references: [id])
+
+  type        JournalEntryType
+  description String
+  entryDate   DateTime @map("entry_date")
+
+  isReversed    Boolean @default(false) @map("is_reversed")
+  reversedById  String? @map("reversed_by_id")
+  reversalOfId  String? @map("reversal_of_id")
+
+  lines JournalLine[]
+
+  @@index([managementCompanyId])
+  @@index([entryDate])
+  @@map("journal_entries")
+}
+
+model JournalLine {
+  id String @id @default(uuid())
+
+  journalEntryId String       @map("journal_entry_id")
+  journalEntry   JournalEntry @relation(fields: [journalEntryId], references: [id])
+
+  accountId String  @map("account_id")
+  account   Account @relation(fields: [accountId], references: [id])
+
+  debit       Int    @default(0) // cents
+  credit      Int    @default(0) // cents
+  description String?
+
+  @@index([journalEntryId])
+  @@index([accountId])
+  @@map("journal_lines")
+}
+
+// ─────────────────────────────────────────────
+// COMMUNICATIONS
+// ─────────────────────────────────────────────
+
+model Message {
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  managementCompanyId String @map("management_company_id")
+  managementCompany   ManagementCompany @relation(fields: [managementCompanyId], references: [id])
+
+  workOrderId String?    @map("work_order_id")
+  workOrder   WorkOrder? @relation(fields: [workOrderId], references: [id])
+
+  senderId    String @map("sender_id")
+  recipientId String @map("recipient_id")
+
+  subject String?
+  body    String
+  isRead  Boolean        @default(false) @map("is_read")
+  channel MessageChannel @default(IN_APP)
+
+  @@index([managementCompanyId])
+  @@index([senderId])
+  @@index([recipientId])
+  @@map("messages")
+}
+
+// ─────────────────────────────────────────────
+// DOCUMENTS
+// ─────────────────────────────────────────────
+
+model Document {
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  leaseId     String?    @map("lease_id")
+  lease       Lease?     @relation(fields: [leaseId], references: [id])
+  workOrderId String?    @map("work_order_id")
+  workOrder   WorkOrder? @relation(fields: [workOrderId], references: [id])
+
+  name       String
+  fileKey    String  @map("file_key") // S3 object key
+  mimeType   String  @map("mime_type")
+  sizeBytes  Int     @map("size_bytes")
+  uploadedBy String  @map("uploaded_by") // user ID
+
+  @@index([leaseId])
+  @@index([workOrderId])
+  @@map("documents")
+}
+
+// ─────────────────────────────────────────────
+// AUDIT LOG
+// ─────────────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @map("created_at")
+
+  managementCompanyId String? @map("management_company_id")
+  managementCompany   ManagementCompany? @relation(fields: [managementCompanyId], references: [id])
+
+  userId String? @map("user_id")
+  user   User?   @relation(fields: [userId], references: [id])
+
+  action     String
+  entityType String @map("entity_type")
+  entityId   String @map("entity_id")
+
+  before Json?
+  after  Json?
+
+  ipAddress String? @map("ip_address")
+  userAgent String? @map("user_agent")
+
+  @@index([managementCompanyId])
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
