@@ -13,7 +13,9 @@ export interface CreatePropertyInput {
   ownerId?: string;
 }
 
-export interface UpdatePropertyInput extends Partial<CreatePropertyInput> {}
+export interface UpdatePropertyInput extends Partial<CreatePropertyInput> {
+  maintenanceApprovalThreshold?: number | null;
+}
 
 export interface ListPropertiesQuery {
   page?: number;

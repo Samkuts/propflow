@@ -9,6 +9,7 @@ const createSchema = z.object({
   title: z.string().min(1),
   description: z.string().min(1),
   priority: z.enum(['EMERGENCY', 'HIGH', 'NORMAL', 'LOW']).optional(),
+  estimatedCost: z.number().int().positive().optional(),
 });
 
 const updateSchema = z.object({
@@ -17,6 +18,7 @@ const updateSchema = z.object({
   scheduledDate: z.string().optional(),
   internalNotes: z.string().optional(),
   priority: z.enum(['EMERGENCY', 'HIGH', 'NORMAL', 'LOW']).optional(),
+  estimatedCost: z.number().int().positive().optional(),
 });
 
 const invoiceSchema = z.object({
@@ -110,9 +112,103 @@ export async function approveInvoice(req: Request, res: Response, next: NextFunc
   }
 }
 
+export async function vendorAction(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { status } = req.body;
+    const allowed = ['IN_PROGRESS', 'COMPLETED'];
+    if (!status || !allowed.includes(status)) {
+      badRequest(res, 'Vendors may only set status to IN_PROGRESS or COMPLETED'); return;
+    }
+    // Verify this work order is assigned to this vendor
+    const wo = await svc.getWorkOrder(req.params.id, req.user!.managementCompanyId!);
+    if (!wo) { notFound(res); return; }
+    const updated = await svc.updateWorkOrder(req.params.id, req.user!.managementCompanyId!, { status });
+    ok(res, updated);
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      if (err.message === 'NOT_FOUND') { notFound(res); return; }
+      if (err.message.startsWith('INVALID_TRANSITION')) { badRequest(res, `Invalid status transition`); return; }
+    }
+    next(err);
+  }
+}
+
 export async function vendorWorkOrders(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const data = await svc.getVendorWorkOrders(req.params.vendorId, req.user!.managementCompanyId!);
     ok(res, data);
   } catch (err) { next(err); }
+}
+
+export async function listInvoices(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const page = Number(req.query.page) || 1;
+    const limit = Math.min(Number(req.query.limit) || 20, 100);
+    const { invoices, total } = await svc.listInvoices(req.user!.managementCompanyId!, {
+      workOrderId: req.query.workOrderId as string,
+      status: req.query.status as string,
+      page, limit,
+    });
+    paginate(res, invoices, total, page, limit);
+  } catch (err) { next(err); }
+}
+
+export async function rejectInvoice(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const result = await svc.rejectInvoice(req.params.id, req.user!.managementCompanyId!, req.body.notes);
+    ok(res, result);
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      if (err.message === 'NOT_FOUND') { notFound(res); return; }
+      if (err.message === 'NOT_SUBMITTABLE') { badRequest(res, 'Invoice is not in SUBMITTED status'); return; }
+    }
+    next(err);
+  }
+}
+
+// ─── Owner Approval ───────────────────────────────────────────────────────────
+
+export async function pendingOwnerApproval(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const result = await svc.listPendingOwnerApprovals(req.user!.managementCompanyId!, req.user!.sub);
+    ok(res, result);
+  } catch (err) { next(err); }
+}
+
+export async function ownerApprove(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const result = await svc.ownerApproveWorkOrder(
+      req.params.id,
+      req.user!.managementCompanyId!,
+      req.user!.sub
+    );
+    ok(res, result);
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      if (err.message === 'NOT_FOUND') { notFound(res); return; }
+      if (err.message === 'NOT_AUTHORIZED') { res.status(403).json({ success: false, error: 'This work order is not on your property' }); return; }
+    }
+    next(err);
+  }
+}
+
+export async function ownerReject(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const parsed = z.object({ reason: z.string().min(1) }).safeParse(req.body);
+    if (!parsed.success) { badRequest(res, 'Rejection reason is required'); return; }
+
+    const result = await svc.ownerRejectWorkOrder(
+      req.params.id,
+      req.user!.managementCompanyId!,
+      req.user!.sub,
+      parsed.data.reason
+    );
+    ok(res, result);
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      if (err.message === 'NOT_FOUND') { notFound(res); return; }
+      if (err.message === 'NOT_AUTHORIZED') { res.status(403).json({ success: false, error: 'This work order is not on your property' }); return; }
+    }
+    next(err);
+  }
 }

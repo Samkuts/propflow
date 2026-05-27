@@ -15,7 +15,8 @@ interface TableProps<T> {
   loading?: boolean;
 }
 
-export function Table<T extends { id?: string }>({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function Table<T extends Record<string, any>>({
   columns,
   data,
   onRowClick,
@@ -66,7 +67,7 @@ export function Table<T extends { id?: string }>({
               >
                 {columns.map((col) => (
                   <td key={col.key} className={cn('px-4 py-3 text-gray-700', col.className)}>
-                    {col.render ? col.render(row) : String((row as Record<string, unknown>)[col.key] ?? '—')}
+                    {col.render ? col.render(row) : String(row[col.key] ?? '—')}
                   </td>
                 ))}
               </tr>

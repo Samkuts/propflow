@@ -1,11 +1,13 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom';
 import {
   Building2, Home, FileText, DollarSign, Wrench,
-  BarChart2, LogOut, Bell, ChevronDown, Users
+  BarChart2, LogOut, Bell, Users, MessageSquare, ClipboardList, Settings
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth.store';
 import { initials } from '@/lib/utils';
+import { apiGet } from '@/lib/api';
 
 const nav = [
   { to: '/manager/dashboard', icon: Home, label: 'Dashboard' },
@@ -14,12 +16,22 @@ const nav = [
   { to: '/manager/accounting', icon: DollarSign, label: 'Accounting' },
   { to: '/manager/maintenance', icon: Wrench, label: 'Maintenance' },
   { to: '/manager/tenants', icon: Users, label: 'Tenants' },
+  { to: '/manager/applications', icon: ClipboardList, label: 'Applications' },
+  { to: '/manager/messages', icon: MessageSquare, label: 'Messages' },
   { to: '/manager/reports', icon: BarChart2, label: 'Reports' },
+  { to: '/manager/settings', icon: Settings, label: 'Settings' },
 ];
 
 export default function ManagerLayout() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
+
+  const { data: unreadData } = useQuery<{ count: number }>({
+    queryKey: ['messages-unread'],
+    queryFn: () => apiGet('/api/v1/messages/unread-count'),
+    refetchInterval: 30_000,
+  });
+  const unreadCount = unreadData?.count ?? 0;
 
   function handleLogout() {
     logout();
@@ -55,7 +67,12 @@ export default function ManagerLayout() {
               }
             >
               <Icon size={16} />
-              {label}
+              <span className="flex-1">{label}</span>
+              {label === 'Messages' && unreadCount > 0 && (
+                <span className="w-4 h-4 bg-indigo-400 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -79,9 +96,14 @@ export default function ManagerLayout() {
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-end gap-3 shrink-0">
-          <button className="text-gray-400 hover:text-gray-600 relative">
+          <Link to="/manager/messages" className="text-gray-400 hover:text-gray-600 relative">
             <Bell size={18} />
-          </button>
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-indigo-600 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </Link>
         </header>
         <main className="flex-1 overflow-y-auto p-6">
           <Outlet />

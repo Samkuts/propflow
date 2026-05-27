@@ -92,3 +92,22 @@ export async function vacancySummary(req: Request, res: Response, next: NextFunc
     next(err);
   }
 }
+
+export async function setApprovalThreshold(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const parsed = z.object({
+      maintenanceApprovalThreshold: z.number().int().positive().nullable(),
+    }).safeParse(req.body);
+    if (!parsed.success) { badRequest(res, parsed.error.errors[0].message); return; }
+
+    const property = await svc.updateProperty(
+      req.params.id,
+      req.user!.managementCompanyId!,
+      { maintenanceApprovalThreshold: parsed.data.maintenanceApprovalThreshold } as Parameters<typeof svc.updateProperty>[2]
+    );
+    ok(res, property);
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === 'NOT_FOUND') { notFound(res); return; }
+    next(err);
+  }
+}

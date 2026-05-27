@@ -74,16 +74,19 @@ export default function ManagerLogin() {
 
           <div className="mt-6 pt-6 border-t border-gray-100 text-center space-y-2">
             <p className="text-sm text-gray-500">
+              <Link to="/forgot-password" className="text-indigo-600 hover:underline">
+                Forgot your password?
+              </Link>
+            </p>
+            <p className="text-sm text-gray-500">
               New company?{' '}
               <Link to="/manager/register" className="text-indigo-600 hover:underline font-medium">
                 Create account
               </Link>
             </p>
-            <div className="text-xs text-gray-400 space-y-1">
-              <p><Link to="/tenant/login" className="hover:text-gray-600">Tenant portal →</Link></p>
-              <p><Link to="/owner/login" className="hover:text-gray-600">Owner portal →</Link></p>
-              <p><Link to="/vendor/login" className="hover:text-gray-600">Vendor portal →</Link></p>
-            </div>
+            <p className="text-xs text-gray-400">
+              <Link to="/" className="hover:text-gray-600">← Back to portal selection</Link>
+            </p>
           </div>
         </div>
       </div>

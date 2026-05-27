@@ -1,6 +1,21 @@
 import { prisma } from '../../../lib/prisma';
 
-export async function getRentRoll(managementCompanyId: string) {
+export interface DateRange {
+  startDate?: Date;
+  endDate?: Date;
+}
+
+function defaultDateRange(range: DateRange = {}): { start: Date; end: Date } {
+  const now = new Date();
+  const start = range.startDate ?? new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = range.endDate ?? new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+  return { start, end };
+}
+
+export async function getRentRoll(managementCompanyId: string, _range?: DateRange) {
+  // Rent roll is a current-state snapshot — date range applies to charges shown
+  const { start, end } = defaultDateRange(_range);
+
   const units = await prisma.unit.findMany({
     where: { property: { managementCompanyId }, deletedAt: null },
     orderBy: [{ property: { name: 'asc' } }, { unitNumber: 'asc' }],
@@ -12,7 +27,11 @@ export async function getRentRoll(managementCompanyId: string) {
         include: {
           tenants: { select: { firstName: true, lastName: true, email: true } },
           rentCharges: {
-            where: { status: { in: ['OUTSTANDING', 'PARTIAL'] }, deletedAt: null },
+            where: {
+              status: { in: ['OUTSTANDING', 'PARTIAL'] },
+              deletedAt: null,
+              dueDate: { gte: start, lte: end },
+            },
           },
         },
       },
@@ -42,6 +61,7 @@ export async function getRentRoll(managementCompanyId: string) {
 }
 
 export async function getDelinquencyReport(managementCompanyId: string) {
+  // Delinquency is always a current-state snapshot — no date range applied
   const leases = await prisma.lease.findMany({
     where: {
       status: { in: ['ACTIVE', 'MONTH_TO_MONTH'] },
@@ -81,12 +101,19 @@ export async function getDelinquencyReport(managementCompanyId: string) {
   return delinquent.sort((a, b) => b.totalBalance - a.totalBalance);
 }
 
-export async function getVacancyReport(managementCompanyId: string) {
+export async function getVacancyReport(managementCompanyId: string, range?: DateRange) {
+  const { start, end } = defaultDateRange(range);
+
   const units = await prisma.unit.findMany({
     where: {
       status: 'VACANT',
       property: { managementCompanyId },
       deletedAt: null,
+      // Units that became vacant within the date range (or were already vacant)
+      OR: [
+        { vacantSince: null },
+        { vacantSince: { lte: end } },
+      ],
     },
     include: {
       property: { select: { name: true, address: true } },
@@ -95,9 +122,11 @@ export async function getVacancyReport(managementCompanyId: string) {
 
   const now = Date.now();
   const totalLostRevenue = units.reduce((s, u) => {
-    const daysVacant = u.vacantSince
-      ? Math.floor((now - u.vacantSince.getTime()) / 86_400_000)
-      : 0;
+    const vacantFrom = u.vacantSince
+      ? Math.max(u.vacantSince.getTime(), start.getTime())
+      : start.getTime();
+    const vacantTo = Math.min(now, end.getTime());
+    const daysVacant = Math.max(0, Math.floor((vacantTo - vacantFrom) / 86_400_000));
     return s + daysVacant * Math.round(u.rentAmount / 30);
   }, 0);
 
@@ -121,13 +150,16 @@ export async function getVacancyReport(managementCompanyId: string) {
   };
 }
 
-export async function getWorkOrderSummary(managementCompanyId: string) {
+export async function getWorkOrderSummary(managementCompanyId: string, range?: DateRange) {
+  const { start, end } = defaultDateRange(range);
+
   const [open, completed] = await Promise.all([
     prisma.workOrder.findMany({
       where: {
         managementCompanyId,
         status: { notIn: ['CLOSED', 'DENIED'] },
         deletedAt: null,
+        createdAt: { gte: start, lte: end },
       },
       include: {
         property: { select: { name: true } },
@@ -136,7 +168,12 @@ export async function getWorkOrderSummary(managementCompanyId: string) {
       },
     }),
     prisma.workOrder.findMany({
-      where: { managementCompanyId, status: 'CLOSED', deletedAt: null },
+      where: {
+        managementCompanyId,
+        status: 'CLOSED',
+        deletedAt: null,
+        createdAt: { gte: start, lte: end },
+      },
       select: {
         id: true,
         createdAt: true,

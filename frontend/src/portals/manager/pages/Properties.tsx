@@ -129,11 +129,12 @@ export default function Properties() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {properties.map((p) => (
-            <Card
+            <div
               key={p.id}
-              className="cursor-pointer hover:shadow-md transition-shadow"
+              className="cursor-pointer hover:shadow-md transition-shadow rounded-xl"
               onClick={() => navigate(`/manager/properties/${p.id}`)}
             >
+            <Card>
               <CardBody>
                 <div className="flex items-start justify-between mb-3">
                   <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center">
@@ -155,6 +156,7 @@ export default function Properties() {
                 </div>
               </CardBody>
             </Card>
+            </div>
           ))}
         </div>
       )}

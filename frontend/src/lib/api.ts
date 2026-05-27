@@ -61,6 +61,26 @@ export async function apiDelete(url: string): Promise<void> {
   await api.delete(url);
 }
 
+/** Download a binary resource (PDF, CSV, …) and trigger a browser save-as dialog. */
+export async function apiDownloadBlob(url: string, fallbackFilename = 'download'): Promise<void> {
+  const response = await api.get(url, { responseType: 'blob' });
+
+  // Try to extract filename from Content-Disposition header
+  const cd = response.headers['content-disposition'] as string | undefined;
+  let filename = fallbackFilename;
+  if (cd) {
+    const match = cd.match(/filename="?([^";\n]+)"?/i);
+    if (match?.[1]) filename = match[1];
+  }
+
+  const blobUrl = URL.createObjectURL(response.data as Blob);
+  const a = document.createElement('a');
+  a.href = blobUrl;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 10_000);
+}
+
 export function getErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
     return error.response?.data?.error ?? error.message;

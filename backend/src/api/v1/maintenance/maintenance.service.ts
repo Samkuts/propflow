@@ -1,5 +1,7 @@
 import { WorkOrderStatus, WorkOrderPriority, Prisma } from '@prisma/client';
 import { prisma } from '../../../lib/prisma';
+import { workOrderStatusEmail } from '../../../lib/email';
+import { workOrderStatusSms } from '../../../lib/sms';
 
 export interface CreateWorkOrderInput {
   propertyId: string;
@@ -16,6 +18,7 @@ export interface UpdateWorkOrderInput {
   scheduledDate?: string;
   internalNotes?: string;
   priority?: WorkOrderPriority;
+  estimatedCost?: number; // cents
 }
 
 export interface SubmitInvoiceInput {
@@ -85,12 +88,19 @@ export async function getWorkOrder(id: string, managementCompanyId: string) {
 
 export async function createWorkOrder(
   managementCompanyId: string,
-  input: CreateWorkOrderInput
+  input: CreateWorkOrderInput & { estimatedCost?: number }
 ) {
   const property = await prisma.property.findFirst({
     where: { id: input.propertyId, managementCompanyId, deletedAt: null },
   });
   if (!property) throw new Error('PROPERTY_NOT_FOUND');
+
+  // Determine if owner approval is needed at creation time
+  const threshold = (property as Record<string, unknown>).maintenanceApprovalThreshold as number | null;
+  const needsApproval =
+    threshold != null &&
+    input.estimatedCost != null &&
+    input.estimatedCost > threshold;
 
   return prisma.workOrder.create({
     data: {
@@ -102,6 +112,8 @@ export async function createWorkOrder(
       priority: input.priority ?? 'NORMAL',
       submittedByTenantId: input.submittedByTenantId,
       status: 'SUBMITTED',
+      estimatedCost: input.estimatedCost,
+      ownerApprovalStatus: needsApproval ? 'PENDING' : 'NOT_REQUIRED',
     },
     include: { property: true, unit: true },
   });
@@ -119,19 +131,72 @@ export async function updateWorkOrder(
 
   validateStatusTransition(wo.status, input.status);
 
+  // Check if owner approval is required when estimated cost is being set
+  let ownerApprovalStatus: 'PENDING' | 'NOT_REQUIRED' | undefined;
+  if (input.estimatedCost !== undefined) {
+    const property = await prisma.property.findUnique({
+      where: { id: wo.propertyId },
+      select: { maintenanceApprovalThreshold: true },
+    });
+    const threshold = property?.maintenanceApprovalThreshold;
+    if (threshold != null && input.estimatedCost > threshold) {
+      ownerApprovalStatus = 'PENDING';
+    } else if (wo.ownerApprovalStatus === 'NOT_REQUIRED') {
+      ownerApprovalStatus = 'NOT_REQUIRED';
+    }
+  }
+
   const data: Prisma.WorkOrderUpdateInput = {
     ...(input.status && { status: input.status }),
     ...(input.vendorId !== undefined && { vendorId: input.vendorId }),
     ...(input.scheduledDate && { scheduledDate: new Date(input.scheduledDate) }),
     ...(input.internalNotes !== undefined && { internalNotes: input.internalNotes }),
     ...(input.priority && { priority: input.priority }),
+    ...(input.estimatedCost !== undefined && { estimatedCost: input.estimatedCost }),
+    ...(ownerApprovalStatus && { ownerApprovalStatus }),
   };
 
   if (input.status === 'COMPLETED') {
     data.completedDate = new Date();
   }
 
-  return prisma.workOrder.update({ where: { id }, data, include: { vendor: true } });
+  const updated = await prisma.workOrder.update({
+    where: { id },
+    data,
+    include: {
+      vendor: true,
+      unit: { select: { unitNumber: true } },
+    },
+  });
+
+  // Email + SMS the tenant who submitted the work order (if any)
+  const SMS_STATUSES: WorkOrderStatus[] = ['APPROVED', 'ASSIGNED', 'COMPLETED'];
+  if (input.status && wo.submittedByTenantId) {
+    prisma.tenant.findUnique({
+      where: { id: wo.submittedByTenantId },
+      include: { user: true },
+    }).then((tenant) => {
+      if (!tenant || !tenant.user) return;
+      workOrderStatusEmail({
+        to: tenant.user.email,
+        name: `${tenant.user.firstName} ${tenant.user.lastName}`,
+        title: wo.title,
+        status: input.status!,
+        unitNumber: updated.unit?.unitNumber ?? '',
+      }).catch(() => {});
+      // SMS for the most actionable status changes only
+      if (SMS_STATUSES.includes(input.status!) && tenant.phone) {
+        workOrderStatusSms({
+          to: tenant.phone,
+          name: tenant.firstName,
+          title: wo.title,
+          status: input.status!,
+        }).catch(() => {});
+      }
+    }).catch(() => {});
+  }
+
+  return updated;
 }
 
 export async function submitInvoice(managementCompanyId: string, input: SubmitInvoiceInput) {
@@ -172,6 +237,65 @@ export async function submitInvoice(managementCompanyId: string, input: SubmitIn
     });
 
     return invoice;
+  });
+}
+
+export async function listInvoices(
+  managementCompanyId: string,
+  filters: { workOrderId?: string; status?: string; page?: number; limit?: number }
+) {
+  const { page = 1, limit = 20, workOrderId, status } = filters;
+  const skip = (page - 1) * limit;
+
+  const where: Prisma.InvoiceWhereInput = {
+    workOrder: { managementCompanyId, deletedAt: null },
+    ...(workOrderId && { workOrderId }),
+    ...(status && { status: status as any }),
+  };
+
+  const [invoices, total] = await Promise.all([
+    prisma.invoice.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        lineItems: true,
+        vendor: { select: { companyName: true, contactName: true } },
+        workOrder: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            property: { select: { name: true } },
+            unit: { select: { unitNumber: true } },
+          },
+        },
+      },
+    }),
+    prisma.invoice.count({ where }),
+  ]);
+
+  return { invoices, total };
+}
+
+export async function rejectInvoice(
+  invoiceId: string,
+  managementCompanyId: string,
+  notes?: string
+): Promise<object> {
+  const invoice = await prisma.invoice.findFirst({
+    where: { id: invoiceId, workOrder: { managementCompanyId } },
+  });
+  if (!invoice) throw new Error('NOT_FOUND');
+  if (invoice.status !== 'SUBMITTED') throw new Error('NOT_SUBMITTABLE');
+
+  return prisma.invoice.update({
+    where: { id: invoiceId },
+    data: {
+      status: 'REJECTED',
+      ...(notes && { description: notes }),
+    },
   });
 }
 
@@ -239,6 +363,79 @@ export async function getVendorWorkOrders(vendorId: string, managementCompanyId:
     },
   });
 }
+
+// ─── Owner Approval ───────────────────────────────────────────────────────────
+
+export async function listPendingOwnerApprovals(managementCompanyId: string, ownerUserId: string) {
+  // Find properties owned by this user
+  const owner = await prisma.owner.findFirst({
+    where: { userId: ownerUserId, managementCompanyId, deletedAt: null },
+    include: { properties: { where: { deletedAt: null }, select: { id: true } } },
+  });
+  if (!owner) return [];
+
+  const propertyIds = owner.properties.map((p) => p.id);
+
+  return prisma.workOrder.findMany({
+    where: {
+      managementCompanyId,
+      propertyId: { in: propertyIds },
+      deletedAt: null,
+      ownerApprovalStatus: 'PENDING',
+    },
+    include: {
+      property: { select: { name: true, address: true } },
+      unit: { select: { unitNumber: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
+export async function ownerApproveWorkOrder(
+  id: string,
+  managementCompanyId: string,
+  ownerUserId: string
+) {
+  const wo = await prisma.workOrder.findFirst({
+    where: { id, managementCompanyId, deletedAt: null, ownerApprovalStatus: 'PENDING' },
+    include: { property: { include: { owner: true } } },
+  });
+  if (!wo) throw new Error('NOT_FOUND');
+  if (wo.property.owner?.userId !== ownerUserId) throw new Error('NOT_AUTHORIZED');
+
+  return prisma.workOrder.update({
+    where: { id },
+    data: {
+      ownerApprovalStatus: 'APPROVED',
+      ownerApprovedAt: new Date(),
+      ownerApprovedBy: ownerUserId,
+    },
+  });
+}
+
+export async function ownerRejectWorkOrder(
+  id: string,
+  managementCompanyId: string,
+  ownerUserId: string,
+  reason: string
+) {
+  const wo = await prisma.workOrder.findFirst({
+    where: { id, managementCompanyId, deletedAt: null, ownerApprovalStatus: 'PENDING' },
+    include: { property: { include: { owner: true } } },
+  });
+  if (!wo) throw new Error('NOT_FOUND');
+  if (wo.property.owner?.userId !== ownerUserId) throw new Error('NOT_AUTHORIZED');
+
+  return prisma.workOrder.update({
+    where: { id },
+    data: {
+      ownerApprovalStatus: 'REJECTED',
+      ownerRejectionReason: reason,
+    },
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 const VALID_TRANSITIONS: Record<WorkOrderStatus, WorkOrderStatus[]> = {
   SUBMITTED: ['APPROVED', 'DENIED'],

@@ -1,5 +1,6 @@
 import { PaymentMethod, PaymentStatus, Prisma } from '@prisma/client';
 import { prisma } from '../../../lib/prisma';
+import { paymentReceivedEmail } from '../../../lib/email';
 
 export interface RecordPaymentInput {
   leaseId: string;
@@ -106,6 +107,30 @@ export async function recordPayment(
 
     return { payment, appliedTo: applications };
   });
+
+  // Fire-and-forget payment receipt email to all tenants on the lease
+  try {
+    const tenants = await prisma.tenant.findMany({
+      where: { leaseId: input.leaseId, deletedAt: null },
+      include: { user: true },
+    });
+    const paidDate = new Date(input.paidDate ?? new Date()).toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric',
+    });
+    const amount = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(input.amount / 100);
+    for (const tenant of tenants) {
+      if (!tenant.user) continue;
+      paymentReceivedEmail({
+        to: tenant.user.email,
+        tenantName: `${tenant.user.firstName} ${tenant.user.lastName}`,
+        amount,
+        paidDate,
+        referenceNumber: input.referenceNumber,
+      }).catch(() => {});
+    }
+  } catch {
+    // Non-blocking — email failure must not fail the payment
+  }
 
   return result;
 }
@@ -278,6 +303,41 @@ export async function getAccountBalance(
     case 'INCOME':
       return totalCredit - totalDebit;
   }
+}
+
+export async function getChartOfAccounts(managementCompanyId: string) {
+  const accounts = await prisma.account.findMany({
+    where: { managementCompanyId },
+    include: {
+      journalLines: {
+        select: { debit: true, credit: true },
+      },
+    },
+    orderBy: { code: 'asc' },
+  });
+
+  return accounts.map((acc) => {
+    const totalDebit = acc.journalLines.reduce((s, l) => s + l.debit, 0);
+    const totalCredit = acc.journalLines.reduce((s, l) => s + l.credit, 0);
+    let balance: number;
+    switch (acc.type) {
+      case 'ASSET':
+      case 'EXPENSE':
+        balance = totalDebit - totalCredit;
+        break;
+      default: // LIABILITY, EQUITY, INCOME
+        balance = totalCredit - totalDebit;
+    }
+    return {
+      id: acc.id,
+      code: acc.code,
+      name: acc.name,
+      type: acc.type,
+      balance,
+      totalDebit,
+      totalCredit,
+    };
+  });
 }
 
 export async function generateOwnerStatement(

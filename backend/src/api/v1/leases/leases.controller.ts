@@ -18,6 +18,53 @@ const createSchema = z.object({
   tenantIds: z.array(z.string().uuid()).optional(),
 });
 
+export async function list(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const result = await svc.listLeases(req.user!.managementCompanyId!, {
+      status: req.query.status as string | undefined,
+      search: req.query.search as string | undefined,
+      page: req.query.page ? Number(req.query.page) : 1,
+      limit: req.query.limit ? Number(req.query.limit) : 50,
+    });
+    ok(res, result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getExpiring(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const days = req.query.days ? Number(req.query.days) : 30;
+    const result = await svc.getExpiringLeases(req.user!.managementCompanyId!, days);
+    ok(res, result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function listTenants(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const result = await svc.listTenants(req.user!.managementCompanyId!, {
+      search: req.query.search as string | undefined,
+      page: req.query.page ? Number(req.query.page) : 1,
+      limit: req.query.limit ? Number(req.query.limit) : 50,
+    });
+    ok(res, result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function myLease(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const result = await svc.getMyLease(req.user!.sub, req.user!.managementCompanyId!);
+    if (!result) { notFound(res, 'No lease found'); return; }
+    ok(res, result);
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function get(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const lease = await svc.getLease(
@@ -64,12 +111,54 @@ export async function activate(req: Request, res: Response, next: NextFunction):
 
 export async function terminate(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    await svc.terminateLease(req.params.id, req.user!.managementCompanyId!, req.body.reason);
-    ok(res, { message: 'Lease terminated' });
+    const parsed = z.object({
+      moveOutDate: z.string().optional(),
+      depositReturnAmount: z.number().int().min(0).optional(),
+    }).safeParse(req.body);
+    if (!parsed.success) { badRequest(res, parsed.error.errors[0].message); return; }
+
+    const result = await svc.terminateLease(req.params.id, req.user!.managementCompanyId!, parsed.data);
+    ok(res, result);
   } catch (err: unknown) {
     if (err instanceof Error) {
       if (err.message === 'NOT_FOUND') { notFound(res); return; }
-      if (err.message === 'CANNOT_TERMINATE') { badRequest(res, 'Lease is not in an active state'); return; }
+      if (err.message === 'CANNOT_TERMINATE') { badRequest(res, 'Lease must be ACTIVE or MONTH_TO_MONTH to terminate'); return; }
+    }
+    next(err);
+  }
+}
+
+export async function downloadPdf(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { stream, filename } = await svc.getLeasePdfStream(
+      req.params.id,
+      req.user!.managementCompanyId!,
+      req.user!.role,
+      req.user!.sub
+    );
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    stream.pipe(res);
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === 'NOT_FOUND') { notFound(res); return; }
+    next(err);
+  }
+}
+
+export async function renew(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const parsed = z.object({
+      newEndDate: z.string().min(1),
+      newRentAmount: z.number().int().positive().optional(),
+    }).safeParse(req.body);
+    if (!parsed.success) { badRequest(res, parsed.error.errors[0].message); return; }
+
+    const result = await svc.renewLease(req.params.id, req.user!.managementCompanyId!, parsed.data);
+    ok(res, result);
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      if (err.message === 'NOT_FOUND') { notFound(res); return; }
+      if (err.message === 'CANNOT_RENEW') { badRequest(res, 'Lease must be ACTIVE or MONTH_TO_MONTH to renew'); return; }
     }
     next(err);
   }

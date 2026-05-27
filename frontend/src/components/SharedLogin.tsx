@@ -76,9 +76,14 @@ export function SharedLogin({ portal, label, dashboardPath, icon: Icon, color, b
               Sign in
             </button>
           </form>
-          <p className="mt-4 text-center text-xs text-gray-400">
-            <Link to="/manager/login" className="hover:text-gray-600">Manager portal →</Link>
-          </p>
+          <div className="mt-4 text-center space-y-1">
+            <p className="text-xs text-gray-500">
+              <Link to="/forgot-password" className="hover:underline text-gray-600">Forgot your password?</Link>
+            </p>
+            <p className="text-xs text-gray-400">
+              <Link to="/" className="hover:text-gray-600">← Back to portal selection</Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>

@@ -61,6 +61,25 @@ export async function getTenantLedger(req: Request, res: Response, next: NextFun
   }
 }
 
+export async function getChartOfAccounts(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const data = await svc.getChartOfAccounts(req.user!.managementCompanyId!);
+    ok(res, data);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function postRentCharges(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { postMonthlyRentCharges } = await import('../leases/leases.service');
+    const posted = await postMonthlyRentCharges(req.user!.managementCompanyId!);
+    ok(res, { posted: posted.length, items: posted });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function ownerStatement(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const year = Number(req.query.year) || new Date().getFullYear();

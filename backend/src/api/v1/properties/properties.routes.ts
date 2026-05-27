@@ -12,6 +12,7 @@ router.get('/', requireManagerOrOwner, ctrl.list);
 router.get('/:id', requireManagerOrOwner, ctrl.get);
 router.post('/', requireManager, ctrl.create);
 router.patch('/:id', requireManager, ctrl.update);
+router.patch('/:id/approval-threshold', requireManager, ctrl.setApprovalThreshold);
 router.delete('/:id', requireManager, ctrl.remove);
 
 export default router;

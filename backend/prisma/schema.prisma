@@ -124,6 +124,26 @@ enum ApplicationStatus {
   DENIED
 }
 
+enum InspectionType {
+  MOVE_IN
+  MOVE_OUT
+  ROUTINE
+}
+
+enum InspectionCondition {
+  EXCELLENT
+  GOOD
+  FAIR
+  POOR
+}
+
+enum OwnerApprovalStatus {
+  NOT_REQUIRED
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum MessageChannel {
   IN_APP
   EMAIL
@@ -158,6 +178,7 @@ model ManagementCompany {
   journalEntries JournalEntry[]
   messages       Message[]
   auditLogs      AuditLog[]
+  disbursements  Disbursement[]
 
   @@map("management_companies")
 }
@@ -175,6 +196,9 @@ model User {
   lastName     String   @map("last_name")
   phone        String?
   avatarUrl    String?  @map("avatar_url")
+
+  passwordResetToken     String?   @map("password_reset_token")
+  passwordResetExpiresAt DateTime? @map("password_reset_expires_at")
 
   managementCompanyId String? @map("management_company_id")
   managementCompany   ManagementCompany? @relation(fields: [managementCompanyId], references: [id])
@@ -258,6 +282,11 @@ model Property {
   units          Unit[]
   workOrders     WorkOrder[]
   journalEntries JournalEntry[]
+  documents      Document[]
+  disbursements  Disbursement[]
+
+  // Owner maintenance approval threshold (cents). Work orders above this require owner approval.
+  maintenanceApprovalThreshold Int? @map("maintenance_approval_threshold")
 
   @@index([managementCompanyId])
   @@index([ownerId])
@@ -282,6 +311,10 @@ model Unit {
   description String?
 
   vacantSince DateTime? @map("vacant_since")
+
+  // Vacancy marketing
+  listingEnabled     Boolean @default(false)     @map("listing_enabled")
+  listingDescription String?                     @map("listing_description")
 
   leases     Lease[]
   workOrders WorkOrder[]
@@ -326,10 +359,12 @@ model Lease {
   depositReturned Boolean   @default(false) @map("deposit_returned")
   depositReturnedDate DateTime? @map("deposit_returned_date")
 
-  tenants     Tenant[]
-  rentCharges RentCharge[]
-  payments    Payment[]
-  documents   Document[]
+  tenants          Tenant[]
+  rentCharges      RentCharge[]
+  payments         Payment[]
+  documents        Document[]
+  recurringCharges RecurringCharge[]
+  inspections      InspectionReport[]
 
   @@index([unitId])
   @@map("leases")
@@ -501,6 +536,13 @@ model WorkOrder {
 
   scheduledDate DateTime? @map("scheduled_date")
   completedDate DateTime? @map("completed_date")
+
+  // Owner approval
+  estimatedCost        Int?                @map("estimated_cost") // cents
+  ownerApprovalStatus  OwnerApprovalStatus @default(NOT_REQUIRED) @map("owner_approval_status")
+  ownerApprovedAt      DateTime?           @map("owner_approved_at")
+  ownerApprovedBy      String?             @map("owner_approved_by") // user ID
+  ownerRejectionReason String?             @map("owner_rejection_reason")
 
   invoices  Invoice[]
   documents Document[]
@@ -701,6 +743,8 @@ model Document {
   lease       Lease?     @relation(fields: [leaseId], references: [id])
   workOrderId String?    @map("work_order_id")
   workOrder   WorkOrder? @relation(fields: [workOrderId], references: [id])
+  propertyId  String?    @map("property_id")
+  property    Property?  @relation(fields: [propertyId], references: [id])
 
   name       String
   fileKey    String  @map("file_key") // S3 object key
@@ -710,6 +754,7 @@ model Document {
 
   @@index([leaseId])
   @@index([workOrderId])
+  @@index([propertyId])
   @@map("documents")
 }
 
@@ -741,4 +786,93 @@ model AuditLog {
   @@index([userId])
   @@index([entityType, entityId])
   @@map("audit_logs")
+}
+
+// ─────────────────────────────────────────────
+// RECURRING CHARGES
+// ─────────────────────────────────────────────
+
+model RecurringCharge {
+  id        String    @id @default(uuid())
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt      @map("updated_at")
+  deletedAt DateTime?                 @map("deleted_at")
+
+  leaseId String @map("lease_id")
+  lease   Lease  @relation(fields: [leaseId], references: [id])
+
+  type        RentChargeType // PET_FEE, PARKING, UTILITY, OTHER — not RENT or LATE_FEE
+  amount      Int            // cents
+  description String?
+  dayOfMonth  Int            @map("day_of_month") // 1–28
+
+  startDate DateTime  @map("start_date")
+  endDate   DateTime? @map("end_date")
+  active    Boolean   @default(true)
+
+  @@index([leaseId])
+  @@map("recurring_charges")
+}
+
+// ─────────────────────────────────────────────
+// INSPECTION REPORTS
+// ─────────────────────────────────────────────
+
+model InspectionReport {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt      @map("updated_at")
+
+  leaseId String @map("lease_id")
+  lease   Lease  @relation(fields: [leaseId], references: [id])
+
+  type             InspectionType
+  conductedAt      DateTime
+  conductedBy      String              @map("conducted_by") // user ID
+  overallCondition InspectionCondition @default(GOOD)       @map("overall_condition")
+  notes            String?
+  // JSON: Array<{ room: string, condition: string, notes: string }>
+  items            Json                @default("[]")
+
+  signedByTenant  Boolean   @default(false) @map("signed_by_tenant")
+  signedAt        DateTime?              @map("signed_at")
+  tenantSignature String?                @map("tenant_signature")
+
+  @@index([leaseId])
+  @@map("inspection_reports")
+}
+
+// ─────────────────────────────────────────────
+// OWNER DISBURSEMENTS
+// ─────────────────────────────────────────────
+
+enum DisbursementStatus {
+  PENDING
+  PROCESSED
+  FAILED
+}
+
+model Disbursement {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  managementCompanyId String @map("management_company_id")
+  managementCompany   ManagementCompany @relation(fields: [managementCompanyId], references: [id])
+
+  ownerId    String @map("owner_id")
+  propertyId String @map("property_id")
+  property   Property @relation(fields: [propertyId], references: [id])
+
+  amount          Int               // cents
+  status          DisbursementStatus @default(PENDING)
+  disbursementDate DateTime          @map("disbursement_date")
+  notes           String?
+
+  journalEntryId String? @map("journal_entry_id")
+
+  @@index([managementCompanyId])
+  @@index([ownerId])
+  @@index([propertyId])
+  @@map("disbursements")
 }

@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { BarChart2, Building2, FileText, LogOut } from 'lucide-react';
+import { BarChart2, Building2, FileText, LogOut, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth.store';
 
@@ -7,6 +7,7 @@ const nav = [
   { to: '/owner/dashboard', icon: BarChart2, label: 'Overview' },
   { to: '/owner/properties', icon: Building2, label: 'Properties' },
   { to: '/owner/statements', icon: FileText, label: 'Statements' },
+  { to: '/owner/settings', icon: Settings, label: 'Settings' },
 ];
 
 export default function OwnerLayout() {
