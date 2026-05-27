@@ -15,22 +15,33 @@ interface ProfileData {
   phone: string;
 }
 
+type Tab = 'profile' | 'security';
+
 interface SettingsPageProps {
   /** Tailwind bg class for the active-tab indicator + save button, e.g. "bg-indigo-600" */
   accentClass?: string;
   /** Tailwind focus-ring class, e.g. "focus:ring-indigo-500" */
   ringClass?: string;
+  /**
+   * When true, hide the page-level <h1> and tab switcher — the parent component
+   * is providing its own wrapper. Used by OwnerSettings, which has an extra
+   * "Bank Account" tab and needs to own the top-level chrome.
+   */
+  embedded?: boolean;
+  /** Which sub-tab to render. Only respected when `embedded` is true. */
+  forcedTab?: Tab;
 }
-
-type Tab = 'profile' | 'security';
 
 export default function SettingsPage({
   accentClass = 'bg-indigo-600',
   ringClass = 'focus:ring-indigo-500',
+  embedded = false,
+  forcedTab,
 }: SettingsPageProps) {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState<Tab>('profile');
+  const [internalTab, setTab] = useState<Tab>('profile');
+  const tab: Tab = embedded && forcedTab ? forcedTab : internalTab;
 
   // ── Profile tab ────────────────────────────────────────────────────────────
   const [profile, setProfile] = useState<ProfileData>({
@@ -108,24 +119,28 @@ export default function SettingsPage({
 
   return (
     <div className="max-w-2xl">
-      <h1 className="text-2xl font-bold text-gray-900 mb-1">Settings</h1>
-      <p className="text-gray-500 text-sm mb-6">Manage your account profile and security settings.</p>
+      {!embedded && (
+        <>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">Settings</h1>
+          <p className="text-gray-500 text-sm mb-6">Manage your account profile and security settings.</p>
 
-      {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-gray-100 rounded-xl p-1 w-fit">
-        {(['profile', 'security'] as Tab[]).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              tab === t ? `${accentClass} text-white shadow-sm` : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            {t === 'profile' ? <User size={14} /> : <Lock size={14} />}
-            {t.charAt(0).toUpperCase() + t.slice(1)}
-          </button>
-        ))}
-      </div>
+          {/* Tabs */}
+          <div className="flex gap-1 mb-6 bg-gray-100 rounded-xl p-1 w-fit">
+            {(['profile', 'security'] as Tab[]).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  tab === t ? `${accentClass} text-white shadow-sm` : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                {t === 'profile' ? <User size={14} /> : <Lock size={14} />}
+                {t.charAt(0).toUpperCase() + t.slice(1)}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* Profile Tab */}
       {tab === 'profile' && (

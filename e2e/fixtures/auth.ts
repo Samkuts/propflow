@@ -15,6 +15,23 @@ export async function loginAs(page: Page, role: 'manager' | 'tenant' | 'owner' |
   await page.fill('input[type="password"]', creds.password);
   await page.click('button[type="submit"]');
   await page.waitForURL(`/${creds.portal}/**`, { timeout: 10_000 });
+  // Wait for the Zustand persist middleware to flush tokens to localStorage.
+  // Without this, storageState() can capture an empty origin and tests land
+  // back on the login screen.
+  await page.waitForFunction(
+    () => {
+      const raw = localStorage.getItem('pm-auth');
+      if (!raw) return false;
+      try {
+        const parsed = JSON.parse(raw);
+        return !!parsed?.state?.accessToken;
+      } catch {
+        return false;
+      }
+    },
+    null,
+    { timeout: 5_000 },
+  );
 }
 
 export function authStatePath(role: string) {

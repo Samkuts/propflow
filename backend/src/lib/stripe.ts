@@ -12,6 +12,17 @@ export function getStripe(): InstanceType<typeof Stripe> {
   return _stripe;
 }
 
+/**
+ * True iff a real-looking Stripe secret is set.
+ * Rejects empty values and the well-known `.env.example` placeholders
+ * (`sk_test_...`, `sk_live_...`) so endpoints can fall back gracefully
+ * in dev without first making a doomed call to Stripe.
+ */
 export function stripeConfigured(): boolean {
-  return !!process.env.STRIPE_SECRET_KEY;
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) return false;
+  if (key.endsWith('...')) return false; // placeholder
+  // Real Stripe secrets have at least 30 chars after the sk_test_ / sk_live_ prefix
+  if (/^sk_(test|live)_/.test(key) && key.length < 40) return false;
+  return true;
 }

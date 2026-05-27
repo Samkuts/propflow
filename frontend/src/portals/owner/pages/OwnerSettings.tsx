@@ -84,9 +84,14 @@ export default function OwnerSettings() {
         ))}
       </div>
 
-      {/* Profile & Security use shared component */}
+      {/* Profile & Security use shared component (embedded — outer h1+tabs already rendered above) */}
       {(tab === 'profile' || tab === 'security') && (
-        <SettingsPage accentClass={accentClass} ringClass={ringClass} />
+        <SettingsPage
+          accentClass={accentClass}
+          ringClass={ringClass}
+          embedded
+          forcedTab={tab}
+        />
       )}
 
       {/* Bank Account Tab */}
